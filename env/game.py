@@ -74,12 +74,12 @@ class Game:
                self.__move_left
                ][direction]()
 
-        if self.field != new:
-            self.field = new
-            self.insert_rand_num()
-            self.round += 1
-            return True
-        return False
+        # if self.field != new:
+        self.field = new
+        self.insert_rand_num()
+        self.round += 1
+        return True
+        # return False
 
     def __move_up(self):
         new = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]

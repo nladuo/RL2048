@@ -1,12 +1,12 @@
 import numpy as np
 import tensorflow as tf
 
-np.random.seed(1)
-tf.set_random_seed(1)
+np.random.seed(42)
+tf.set_random_seed(42)
 
 
 def weight_variable(w_name, shape, c_names):
-    w = tf.get_variable(w_name, shape=shape, initializer=tf.truncated_normal_initializer(stddev=0.01),
+    w = tf.get_variable(w_name, shape=shape, initializer=tf.truncated_normal_initializer(stddev=0.1),
                         collections=c_names)
     return tf.Variable(w)
 
@@ -26,7 +26,7 @@ class DuelingDQN:
             n_actions,
             n_features,
             start_learning_rate=1e-3,
-            reward_decay=0.9,
+            reward_decay=0.95,
             e_greedy=0.9,
             replace_target_iter=200,
             memory_size=500,
@@ -39,7 +39,8 @@ class DuelingDQN:
         self.n_actions = n_actions
         self.n_features = n_features
         self.global_step = tf.Variable(0)  # count the number of steps taken.
-        self.lr = tf.train.exponential_decay(float(start_learning_rate), self.global_step, 1000, 0.90, staircase=True)
+        self.lr = tf.train.exponential_decay(float(start_learning_rate), self.global_step, 1000, 0.997,
+                                             staircase=True)
         self.gamma = reward_decay
         self.epsilon_max = e_greedy
         self.replace_target_iter = replace_target_iter
@@ -72,25 +73,25 @@ class DuelingDQN:
             def make_conv_layer(k, i, _id):
                 w = weight_variable('w'+_id, k, c_names)
                 b = bias_variable('b'+_id, [k[-1]], c_names)
-                o = tf.nn.relu(conv2d(i, w) + b)
+                o = tf.nn.tanh(conv2d(i, w) + b)
                 return o
 
             # first conv layer.
-            conv_o1 = make_conv_layer([1, 1, 1, 32], x, "1")
+            conv_o1 = make_conv_layer([1, 1, 1, 64], x, "1")
 
             # second conv two-layer.
-            conv_o11 = make_conv_layer([4, 1, 32, 64], conv_o1, "11")
-            conv_o12 = make_conv_layer([1, 4, 32, 64], conv_o1, "12")
+            conv_o11 = make_conv_layer([4, 1, 64, 128], conv_o1, "11")
+            conv_o12 = make_conv_layer([1, 4, 64, 128], conv_o1, "12")
 
             # third flatten layer.
-            flat = tf.concat([tf.reshape(conv_o11, [-1, 4 * 64]),
-                              tf.reshape(conv_o12, [-1, 4 * 64])], axis=1)
+            flat = tf.concat([tf.reshape(conv_o11, [-1, 4 * 128]),
+                              tf.reshape(conv_o12, [-1, 4 * 128])], axis=1)
 
             # fourth full-connected layer.
             with tf.variable_scope('l4_fc'):
-                w4 = weight_variable('w4', [4*64*2, 256], c_names)
+                w4 = weight_variable('w4', [4*128*2, 256], c_names)
                 b4 = bias_variable('b4', [256], c_names)
-                l4 = tf.nn.relu(tf.matmul(flat, w4) + b4)
+                l4 = tf.nn.tanh(tf.matmul(flat, w4) + b4)
 
             # fifth layer. Dueling DQN
             with tf.variable_scope('Value'):
@@ -119,7 +120,7 @@ class DuelingDQN:
         with tf.variable_scope('loss'):
             self.loss = tf.reduce_mean(tf.squared_difference(self.q_target, self.q_eval))
         with tf.variable_scope('train'):
-            self._train_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
+            self._train_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss, global_step=self.global_step)
 
         # ------------------ build target_net ------------------
         self.s_ = tf.placeholder(tf.float32, [None, self.n_features], name='s_')    # input
@@ -143,6 +144,9 @@ class DuelingDQN:
         else:
             action = np.random.randint(0, self.n_actions)
         return action
+
+    def get_lr(self):
+        return self.sess.run([self.global_step, self.lr])
 
     def learn(self):
         if self.learn_step_counter % self.replace_target_iter == 0:
