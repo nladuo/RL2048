@@ -25,7 +25,7 @@ class DuelingDQN:
             self,
             n_actions,
             n_features,
-            start_learning_rate=1e-3,
+            learning_rate=1e-4,
             reward_decay=0.95,
             e_greedy=0.9,
             replace_target_iter=200,
@@ -39,8 +39,7 @@ class DuelingDQN:
         self.n_actions = n_actions
         self.n_features = n_features
         self.global_step = tf.Variable(0)  # count the number of steps taken.
-        self.lr = tf.train.exponential_decay(float(start_learning_rate), self.global_step, 1000, 0.997,
-                                             staircase=True)
+        self.lr = learning_rate
         self.gamma = reward_decay
         self.epsilon_max = e_greedy
         self.replace_target_iter = replace_target_iter
@@ -120,7 +119,7 @@ class DuelingDQN:
         with tf.variable_scope('loss'):
             self.loss = tf.reduce_mean(tf.squared_difference(self.q_target, self.q_eval))
         with tf.variable_scope('train'):
-            self._train_op = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss, global_step=self.global_step)
+            self._train_op = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
 
         # ------------------ build target_net ------------------
         self.s_ = tf.placeholder(tf.float32, [None, self.n_features], name='s_')    # input
@@ -145,8 +144,6 @@ class DuelingDQN:
             action = np.random.randint(0, self.n_actions)
         return action
 
-    def get_lr(self):
-        return self.sess.run([self.global_step, self.lr])
 
     def learn(self):
         if self.learn_step_counter % self.replace_target_iter == 0:

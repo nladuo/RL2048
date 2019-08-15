@@ -7,6 +7,9 @@ Python3.6
 ## Status
 unfinished.
 
+## Result
+Avg Score is about 4275. Most of playing trajectory can get the 256 number.
+
 
 ## Reference
 - [https://cs.uwaterloo.ca/~mli/zalevine-dqn-2048.pdf](https://cs.uwaterloo.ca/~mli/zalevine-dqn-2048.pdf)

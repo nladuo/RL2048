@@ -41,15 +41,13 @@ def train_2048():
 
         if episode % 100 == 0:
             print(observation)
-            train_step, lr = RL.get_lr()
-            print("train_step:", train_step, ",Learning Rate:", lr)
             env.show()
 
 if __name__ == "__main__":
     env = Game()
     RL = DuelingDQN(env.n_actions,
                     env.n_features,
-                    start_learning_rate=1e-3,
+                    learning_rate=1e-4,
                     reward_decay=0.95,
                     e_greedy=0.99,
                     start_epsilon=0.5,

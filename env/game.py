@@ -257,7 +257,7 @@ class Game:
             reward = -0.5
 
         if done:
-            reward -= 1
+            reward = -1
 
         return format_state(s_), reward, done
 
